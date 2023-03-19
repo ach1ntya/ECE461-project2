@@ -1,0 +1,24 @@
+name: CI metrics
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: ./run install
+
+      - name: Build application
+        run: ./run build
+
+      - name: Run URL file
+        run: ./run sample_url_file.txt
+
+      - name: Test installation
+        run: ./run test

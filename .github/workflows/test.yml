@@ -5,19 +5,20 @@ on:
     branches: [main]
 
 jobs:
-  runs-on: ubuntu-latest
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Install dependencies
-      run: ./run install
+      - name: Install dependencies
+        run: ./run install
 
-    - name: Build application
-      run: ./run build
+      - name: Build application
+        run: ./run build
 
-    - name: Run URL file
-      run: ./run sample_url_file.txt
+      - name: Run URL file
+        run: ./run sample_url_file.txt
 
-    - name: Test installation
-      run: ./run test
+      - name: Test installation
+        run: ./run test

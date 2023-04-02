@@ -3,17 +3,18 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"os"
-	"strconv"
 	"fmt"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"io/ioutil"
-	"net/http"
 	"log"
+	"net/http"
+	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var logger *zap.Logger
@@ -21,13 +22,14 @@ var sugar_logger *zap.SugaredLogger
 var atomic_level = zap.NewAtomicLevel()
 
 type score_struct struct {
-	URL string
-	NET_SCORE float64
-	RAMP_UP_SCORE float64
-	CORRECTNESS_SCORE float64
-	BUS_FACTOR_SCORE float64
+	URL                         string
+	NET_SCORE                   float64
+	RAMP_UP_SCORE               float64
+	CORRECTNESS_SCORE           float64
+	BUS_FACTOR_SCORE            float64
 	RESPONSIVE_MAINTAINER_SCORE float64
-	LICENSE_SCORE float64
+	LICENSE_SCORE               float64
+	DEPENDENCY_SCORE            float64
 }
 
 type package_info struct {
@@ -38,12 +40,12 @@ type package_info struct {
 
 func get_git_url(npm_url string) string {
 	re_npm_url, _ := regexp.Compile("/\\w+")
-    raw_module_name := re_npm_url.FindAllString(npm_url, -1)
+	raw_module_name := re_npm_url.FindAllString(npm_url, -1)
 	if len(raw_module_name) == 0 {
 		log.Println("Error: The npmjs url provided is invalid!")
 		return ""
 	}
-	module_name := raw_module_name[len(raw_module_name) - 1]
+	module_name := raw_module_name[len(raw_module_name)-1]
 	url := fmt.Sprintf("https://registry.npmjs.org/%s", module_name)
 
 	res, err := http.Get(url)
@@ -62,7 +64,7 @@ func get_git_url(npm_url string) string {
 		return ""
 	}
 	re_git_url, _ := regexp.Compile("github.com/\\w+/\\w+.git")
-    match_url := "https://" + re_git_url.FindString(info.Repository.URL)
+	match_url := "https://" + re_git_url.FindString(info.Repository.URL)
 	return match_url
 }
 
@@ -99,7 +101,7 @@ func analyze_git(old_url string, url string) score_struct {
 
 	var personal_token string
 	personal_token = os.Getenv("GITHUB_TOKEN")
-    
+
 	sugar_logger.Info("Getting correctness score...")
 	correctness_score_num := correctness_score(personal_token, owner, repo)
 	sugar_logger.Info("Completed correctness score!")
@@ -116,16 +118,21 @@ func analyze_git(old_url string, url string) score_struct {
 	license_compatibility_score_num := license_score(personal_token, owner, repo)
 	sugar_logger.Info("Completed getting license compatibility score!")
 
+	sugar_logger.Info("Getting pinned dependency score...")
+	dependency_score_num := dependency_score(repo)
+	sugar_logger.Info("Completed getting dependency score!")
+
 	// Calculate net score
-	net_score_raw := 0.2 * ramp_up_score_num + 0.2 * correctness_score_num + 0.2 * bus_factor_score_num + 0.3 * responseviness_score_num + 0.1 * license_compatibility_score_num
+	net_score_raw := 0.2*ramp_up_score_num + 0.2*correctness_score_num + 0.2*bus_factor_score_num + 0.3*responseviness_score_num + 0.1*license_compatibility_score_num
 	net_score, _ := strconv.ParseFloat(fmt.Sprintf("%.1f", net_score_raw), 64)
-	
+
 	result.NET_SCORE = net_score
 	result.RAMP_UP_SCORE = ramp_up_score_num
 	result.CORRECTNESS_SCORE = correctness_score_num
 	result.BUS_FACTOR_SCORE = bus_factor_score_num
 	result.RESPONSIVE_MAINTAINER_SCORE = responseviness_score_num
 	result.LICENSE_SCORE = license_compatibility_score_num
+	result.DEPENDENCY_SCORE = dependency_score_num
 	return result
 }
 
@@ -176,7 +183,7 @@ func init() {
 	encode_config.EncodeTime = zapcore.ISO8601TimeEncoder
 	log_file, _ := os.Create(os.Getenv("LOG_FILE"))
 	core := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(encode_config), 
+		zapcore.NewConsoleEncoder(encode_config),
 		zapcore.AddSync(log_file), atomic_level)
 	logger = zap.New(core, zap.AddCaller())
 	sugar_logger = logger.Sugar()
@@ -184,12 +191,12 @@ func init() {
 	log_level, _ := strconv.Atoi(os.Getenv("LOG_LEVEL"))
 	atomic_level.SetLevel(zap.FatalLevel)
 	switch log_level {
-		case 1:
-			atomic_level.SetLevel(zap.InfoLevel)
-		case 2:
-			atomic_level.SetLevel(zap.DebugLevel)
-		default:
-			atomic_level.SetLevel(zap.FatalLevel)
+	case 1:
+		atomic_level.SetLevel(zap.InfoLevel)
+	case 2:
+		atomic_level.SetLevel(zap.DebugLevel)
+	default:
+		atomic_level.SetLevel(zap.FatalLevel)
 	}
 }
 

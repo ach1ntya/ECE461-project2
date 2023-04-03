@@ -1,16 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"os"
+	"fmt"
 	"testing"
 )
-
-func Test_Dependency_score(t *testing.T) {
-	url := "https://github.com/nullivex/nodist"
-	score := dependency_score(url)
-	fmt.Println(score)
-}
 
 func Test_ramp_up_score1(t *testing.T) {
 	url := "https://github.com/xingyizhou/CenterNet.git"

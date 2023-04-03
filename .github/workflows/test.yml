@@ -1,4 +1,4 @@
-name: CI metrics
+name: CI Metrics
 
 on:
   push:

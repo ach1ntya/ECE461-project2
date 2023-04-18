@@ -21,15 +21,8 @@ type PackageJson struct {
 	Dependencies Dependencies `json:"dependencies"`
 }
 
-func dependency_score(repo string) float64 {
-	parts := strings.Split(repo, "/")
-	if len(parts) < 2 {
-		os.Exit(1)
-	}
-
-	owner, reponame := parts[len(parts)-2], parts[len(parts)-1]
-
-	url := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/master/package.json", owner, reponame)
+func dependency_score(owner string, repo string) float64 {
+	url := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/master/package.json", owner, repo)
 	resp, err := http.Get(url)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err, "line 34")

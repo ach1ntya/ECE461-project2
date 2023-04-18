@@ -1,58 +1,67 @@
 package main
 
 import (
-	"context"
 	"fmt"
-
-	"github.com/graphql-go/graphql"
+	"os"
+	"strings"
+	"io/ioutil"
+	"net/http"
+  	"encoding/json"
 )
 
 func code_review_metric(personal_token string, owner string, repo string) float64 {
 
-	client := graphql.NewClient("https://api.github.com/graphql")
-	req := graphql.NewRequest(fmt.Sprintf(`query {
-      repository(owner: "%s", name: "%s") {
-        pullRequests(last: 100) {
-          nodes {
-            reviews(first: 1) {
-              totalCount
-            }
-          }
-        }
-      }
-    }`, owner, repo))
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", personal_token))
+  type Response struct {
+    Data struct {
+        Repository struct {
+            PullRequests struct {
+                Nodes []struct {
+                    Reviews struct {
+                        TotalCount int `json:"totalCount"`
+                    } `json:"reviews"`
+                } `json:"nodes"`
+            } `json:"pullRequests"`
+        } `json:"repository"`
+    } `json:"data"`
+  }
 
-	ctx := context.Background()
-	var respData struct {
-		Repository struct {
-			PullRequests struct {
-				Nodes []struct {
-					Reviews struct {
-						TotalCount int `json:"totalCount"`
-					} `json:"reviews"`
-				} `json:"nodes"`
-			} `json:"pullRequests"`
-		} `json:"repository"`
-	}
-	if err := client.Run(ctx, req, &respData); err != nil {
-		panic(err)
+	url := "https://api.github.com/graphql"
+	// mySecret := os.Getenv("GITHUB_TOKEN")
+	mySecret := personal_token
+	// var owner = "cloudinary"
+	// var repo  = "cloudinary_npm"
+
+	payload := strings.NewReader(fmt.Sprintf("{\"query\":\"{\\nrepository(owner: \\\"%s\\\", name: \\\"%s\\\") {\\npullRequests(last: 100) {\\nnodes {\\nreviews(first: 1) {\\ntotalCount\\n}\\n}\\n}\\n}\\n}\"}", owner, repo))
+
+	req, err := http.NewRequest("POST", url, payload)
+	if err != nil {
+		fmt.Println("Error sending API Request:", err)
 	}
 
-	reviewedPullRequests := 0
-	for _, node := range respData.Repository.PullRequests.Nodes {
-		if node.Reviews.TotalCount > 0 {
-			reviewedPullRequests++
-		}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer " + mySecret)
+
+	res, _ := http.DefaultClient.Do(req)
+
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+
+	var resp Response
+
+	err = json.Unmarshal([]byte(body), &resp)
+	if err != nil {
+		fmt.Println("Error unmarshaling JSON:", err)
 	}
 
+	var numReviewed int = 0
 	var score float64
-	var totalPullRequests = len(respData.Repository.PullRequests.Nodes)
-	if totalPullRequests > 0 {
-		score = float64(reviewedPullRequests) / float64(totalPullRequests)
-	} else {
-		score = 0
-	}
 
+	for _, node := range resp.Data.Repository.PullRequests.Nodes {
+	if node.Reviews.TotalCount != 0{
+		numReviewed++
+	}  
+	}
+	score = (float64(numReviewed) / float64(len(resp.Data.Repository.PullRequests.Nodes)))
+	// fmt.Println(score)
 	return score
 }

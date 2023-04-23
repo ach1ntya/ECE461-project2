@@ -3,17 +3,18 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"os"
-	"strconv"
 	"fmt"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"io/ioutil"
-	"net/http"
 	"log"
+	"net/http"
+	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var logger *zap.Logger
@@ -21,14 +22,15 @@ var sugar_logger *zap.SugaredLogger
 var atomic_level = zap.NewAtomicLevel()
 
 type score_struct struct {
-	URL string
-	NET_SCORE float64
-	RAMP_UP_SCORE float64
-	CORRECTNESS_SCORE float64
-	BUS_FACTOR_SCORE float64
+	URL                         string
+	NET_SCORE                   float64
+	RAMP_UP_SCORE               float64
+	CORRECTNESS_SCORE           float64
+	BUS_FACTOR_SCORE            float32
 	RESPONSIVE_MAINTAINER_SCORE float64
-	LICENSE_SCORE float64
-	CODE_REVIEW_SCORE float64
+	LICENSE_SCORE               float64
+	CODE_REVIEW_SCORE           float64
+	DEPENDENCY_SCORE            float64
 }
 
 type package_info struct {
@@ -39,12 +41,12 @@ type package_info struct {
 
 func get_git_url(npm_url string) string {
 	re_npm_url, _ := regexp.Compile("/\\w+")
-    raw_module_name := re_npm_url.FindAllString(npm_url, -1)
+	raw_module_name := re_npm_url.FindAllString(npm_url, -1)
 	if len(raw_module_name) == 0 {
 		log.Println("Error: The npmjs url provided is invalid!")
 		return ""
 	}
-	module_name := raw_module_name[len(raw_module_name) - 1]
+	module_name := raw_module_name[len(raw_module_name)-1]
 	url := fmt.Sprintf("https://registry.npmjs.org/%s", module_name)
 
 	res, err := http.Get(url)
@@ -62,8 +64,8 @@ func get_git_url(npm_url string) string {
 		log.Println("Error:", err)
 		return ""
 	}
-	re_git_url, _ := regexp.Compile("github.com/\\w+/\\w+.git")
-    match_url := "https://" + re_git_url.FindString(info.Repository.URL)
+	re_git_url, _ := regexp.Compile("github.com/\\w+/\\w+")
+	match_url := "https://" + re_git_url.FindString(info.Repository.URL)
 	return match_url
 }
 
@@ -89,6 +91,7 @@ func analyze_git(old_url string, url string) score_struct {
 	result.BUS_FACTOR_SCORE = 0.0
 	result.RESPONSIVE_MAINTAINER_SCORE = 0.0
 	result.LICENSE_SCORE = 0.0
+	result.DEPENDENCY_SCORE = 0.0
 	result.CODE_REVIEW_SCORE = 0.0
 	if url == "" {
 		log.Println("Error: The git url provided is invalid!")
@@ -97,11 +100,12 @@ func analyze_git(old_url string, url string) score_struct {
 
 	sugar_logger.Info("Getting ramp-up score...")
 	ramp_up_score_num, owner, repo := ramp_up_score(url)
+	repo = strings.TrimSuffix(repo, ".git")
 	sugar_logger.Info("Completed getting ramp-up score!")
 
 	var personal_token string
 	personal_token = os.Getenv("GITHUB_TOKEN")
-    
+
 	sugar_logger.Info("Getting correctness score...")
 	correctness_score_num := correctness_score(personal_token, owner, repo)
 	sugar_logger.Info("Completed correctness score!")
@@ -122,10 +126,14 @@ func analyze_git(old_url string, url string) score_struct {
 	code_review_score_num := code_review_metric(personal_token, owner, repo)
 	sugar_logger.Info("Completed getting code review score!")
 
+	sugar_logger.Info("Getting code review score...")
+	dependency_score_num := dependency_score(owner, repo)
+	sugar_logger.Info("Completed getting code review score!")
+
 	// Calculate net score
-	net_score_raw := 0.15 * ramp_up_score_num + 0.2 * correctness_score_num + 0.2 * bus_factor_score_num + 0.25 * responseviness_score_num + 0.1 * license_compatibility_score_num  + 0.1 * code_review_score_num
+	net_score_raw := 0.15*ramp_up_score_num + 0.15*correctness_score_num + 0.15*float64(bus_factor_score_num) + 0.2*responseviness_score_num + 0.1*license_compatibility_score_num + 0.1*code_review_score_num + .15*dependency_score_num
 	net_score, _ := strconv.ParseFloat(fmt.Sprintf("%.1f", net_score_raw), 64)
-	
+
 	result.NET_SCORE = net_score
 	result.RAMP_UP_SCORE = ramp_up_score_num
 	result.CORRECTNESS_SCORE = correctness_score_num
@@ -133,6 +141,7 @@ func analyze_git(old_url string, url string) score_struct {
 	result.RESPONSIVE_MAINTAINER_SCORE = responseviness_score_num
 	result.LICENSE_SCORE = license_compatibility_score_num
 	result.CODE_REVIEW_SCORE = code_review_score_num
+	result.DEPENDENCY_SCORE = dependency_score_num
 	return result
 }
 
@@ -183,7 +192,7 @@ func init() {
 	encode_config.EncodeTime = zapcore.ISO8601TimeEncoder
 	log_file, _ := os.Create(os.Getenv("LOG_FILE"))
 	core := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(encode_config), 
+		zapcore.NewConsoleEncoder(encode_config),
 		zapcore.AddSync(log_file), atomic_level)
 	logger = zap.New(core, zap.AddCaller())
 	sugar_logger = logger.Sugar()
@@ -191,12 +200,12 @@ func init() {
 	log_level, _ := strconv.Atoi(os.Getenv("LOG_LEVEL"))
 	atomic_level.SetLevel(zap.FatalLevel)
 	switch log_level {
-		case 1:
-			atomic_level.SetLevel(zap.InfoLevel)
-		case 2:
-			atomic_level.SetLevel(zap.DebugLevel)
-		default:
-			atomic_level.SetLevel(zap.FatalLevel)
+	case 1:
+		atomic_level.SetLevel(zap.InfoLevel)
+	case 2:
+		atomic_level.SetLevel(zap.DebugLevel)
+	default:
+		atomic_level.SetLevel(zap.FatalLevel)
 	}
 }
 

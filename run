@@ -23,22 +23,22 @@ then
 result=$(go test -cover)
 if (( $? == 0))
 then
-echo "Total: 21"
+echo "Total: 24"
 count=$(echo ${result} | xargs -n1 | grep -c "TEST")
 echo "Passed: ${count}"
 cov=$(echo ${result#*coverage:})
 cov_fi=$(echo ${cov%of*})
 echo "Coverage: ${cov_fi}"
-echo "${count}/21 test cases passed. ${cov_fi} line coverage achieved."
+echo "${count}/24 test cases passed. ${cov_fi} line coverage achieved."
 exit 0
 else
-echo "Total: 21"
+echo "Total: 24"
 count=$(echo ${result} | xargs -n1 | grep -c "TEST")
 echo "Passed: ${count}"
 cov=$(echo ${result#*coverage:})
 cov_fi=$(echo ${cov%of*})
 echo "Coverage: ${cov_fi}"
-echo "${count}/21 test cases passed. ${cov_fi} line coverage achieved."
+echo "${count}/24 test cases passed. ${cov_fi} line coverage achieved."
 exit 1
 fi
 fi

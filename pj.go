@@ -30,6 +30,7 @@ type score_struct struct {
 	RESPONSIVE_MAINTAINER_SCORE float64
 	LICENSE_SCORE               float64
 	CODE_REVIEW_SCORE           float64
+	DEPENDENCY_SCORE            float64
 }
 
 type package_info struct {
@@ -105,9 +106,6 @@ func analyze_git(old_url string, url string) score_struct {
 	var personal_token string
 	personal_token = os.Getenv("GITHUB_TOKEN")
 
-	//personal_token = os.Getenv("GITHUB_TOKEN")
-	personal_token = "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"
-
 	sugar_logger.Info("Getting correctness score...")
 	correctness_score_num := correctness_score(personal_token, owner, repo)
 	sugar_logger.Info("Completed correctness score!")
@@ -125,11 +123,15 @@ func analyze_git(old_url string, url string) score_struct {
 	sugar_logger.Info("Completed getting license compatibility score!")
 
 	sugar_logger.Info("Getting code review score...")
-	code_review_score_num := code_review_metric(personal_token, owner, owner, repo)
+	code_review_score_num := code_review_metric(personal_token, owner, repo)
+	sugar_logger.Info("Completed getting code review score!")
+
+	sugar_logger.Info("Getting code review score...")
+	dependency_score_num := dependency_score(owner, repo)
 	sugar_logger.Info("Completed getting code review score!")
 
 	// Calculate net score
-	net_score_raw := 0.15*ramp_up_score_num + 0.2*correctness_score_num + 0.2*bus_factor_score_num + 0.25*responseviness_score_num + 0.1*license_compatibility_score_num + 0.1*code_review_score_num
+	net_score_raw := 0.15*ramp_up_score_num + 0.15*correctness_score_num + 0.15*float64(bus_factor_score_num) + 0.2*responseviness_score_num + 0.1*license_compatibility_score_num + 0.1*code_review_score_num + .15*dependency_score_num
 	net_score, _ := strconv.ParseFloat(fmt.Sprintf("%.1f", net_score_raw), 64)
 
 	result.NET_SCORE = net_score
@@ -139,6 +141,7 @@ func analyze_git(old_url string, url string) score_struct {
 	result.RESPONSIVE_MAINTAINER_SCORE = responseviness_score_num
 	result.LICENSE_SCORE = license_compatibility_score_num
 	result.CODE_REVIEW_SCORE = code_review_score_num
+	result.DEPENDENCY_SCORE = dependency_score_num
 	return result
 }
 

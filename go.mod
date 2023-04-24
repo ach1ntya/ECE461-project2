@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/google/go-github/v50 v50.0.0
+	github.com/graphql-go/graphql v0.8.1
 	github.com/shurcooL/githubv4 v0.0.0-20221229060216-a8d4a561cc93
 	go.uber.org/zap v1.24.0
 	golang.org/x/oauth2 v0.5.0

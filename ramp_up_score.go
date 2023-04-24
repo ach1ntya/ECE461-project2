@@ -1,71 +1,45 @@
 package main
 
 import (
-    "fmt"
-	"regexp"
-	"strconv"
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"os"
-    "os/exec"
-    "log"
-    "github.com/go-git/go-git/v5"
+	"strings"
 )
 
 func ramp_up_score(url string) (float64, string, string) {
-    // create a temp directory and clone the repository to local
-	path := "./tmp"
-    _, err := os.Stat(path)
-    if err == nil {
-        err = os.RemoveAll(path)
-        if err != nil {
-            log.Println("Error:", err)
-            return 0, "", ""
-        }
-    }
-    _, err = exec.Command("mkdir", path).Output()
-    if err != nil {
-        log.Println("Error:", err)
-        return 0, "", ""
-    }
-    _, err = git.PlainClone(path, false, &git.CloneOptions{
-        URL:               url,
-        RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
-    })
-    if err != nil {
-        log.Println("Error:", err)
-        return 0, "", ""
-    }
+	split := strings.Split(url, "/")
+	owner := split[len(split)-2]
+	repo := split[len(split)-1]
 
-    // Use cloc to find the total lines of code
-    command_output, err := exec.Command("./cloc", path).Output()
-    if err != nil {
-        log.Println("Error:", err)
-        return 0, "", ""
-    }
-    // parse out total lines of code and lines of comments
-	re_sum, _ := regexp.Compile("SUM:\\s*\\d+\\s*\\d+\\s*\\d+\\s*\\d+")
-    match_sum := re_sum.FindString(string(command_output))
-	re_num_code, _ := regexp.Compile("\\d+")
-	num_code_comment := re_num_code.FindAllString(match_sum, -1)
-    sugar_logger.Debugf("Number of sloc: " + num_code_comment[len(num_code_comment) - 1])
-    sugar_logger.Debugf("Number of lines of comments: " + num_code_comment[len(num_code_comment) - 2])
-	num_code, _ := strconv.ParseFloat(num_code_comment[len(num_code_comment) - 1], 64)
-	num_comment, _ := strconv.ParseFloat(num_code_comment[len(num_code_comment) - 2], 64)
-    // Calculate ramp up score
-	code_comment_ratio := 4.0 / ((num_code + 1) / (num_comment + 1))
-    sugar_logger.Debugf("Ratio of code to comments: %.1f", code_comment_ratio)
-	score, err := 1.0, nil
-	if code_comment_ratio < 1 {
-		score, _ = strconv.ParseFloat(fmt.Sprintf("%.1f", code_comment_ratio), 64)
+	req, _ := http.NewRequest("GET", "https://api.github.com/search/issues?q=is:pr+repo:"+owner+"/"+repo, nil)
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
 	}
-	err = os.RemoveAll(path)
-    if err != nil {
-        log.Println("Error:", err)
-        return 0, "", ""
-    }
-	// parse owner and repo name
-	re_user_repo, _ := regexp.Compile("/\\w+/\\w+.git")
-    user_repo_raw := re_user_repo.FindString(url)
-	re_user_repo, _ = regexp.Compile("\\w+")
-	user_repo := re_user_repo.FindAllString(user_repo_raw, -1)
-	return score, user_repo[0], user_repo[1]
+
+	defer res.Body.Close()
+
+	var pullRequests PullRequests
+	json.NewDecoder(res.Body).Decode(&pullRequests)
+
+	numPullRequests := pullRequests.TotalCount
+	score := float64(numPullRequests)
+
+	maxPullValue := 20.0
+	normalizedValue := maxPullValue / score
+	if score <= maxPullValue {
+		score = 1
+	}
+	if score > maxPullValue {
+		score = normalizedValue
+	}
+
+	return score, owner, repo
 }

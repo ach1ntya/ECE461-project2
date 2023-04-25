@@ -24,3 +24,5 @@ jobs:
 
       - name: Test installation
         run: ./run test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

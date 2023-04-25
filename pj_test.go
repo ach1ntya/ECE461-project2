@@ -75,6 +75,7 @@ func Test_correctness_score3(t *testing.T) {
 func Test_responseviness_score1(t *testing.T) {
 	fmt.Println("TEST 8")
 	var personal_token string
+	godotenv.Load()
 	personal_token = os.Getenv("GITHUB_TOKEN")
 	owner := "xingyizhou"
 	repo := "CenterNet"
@@ -85,6 +86,7 @@ func Test_responseviness_score1(t *testing.T) {
 func Test_responseviness_score2(t *testing.T) {
 	fmt.Println("TEST 9")
 	var personal_token string
+	godotenv.Load()
 	personal_token = os.Getenv("GITHUB_TOKEN")
 	owner := "hwholiday"
 	repo := "short_url"
@@ -133,6 +135,7 @@ func Test_bus_factor_score3(t *testing.T) {
 func Test_license_score1(t *testing.T) {
 	fmt.Println("TEST 14")
 	var personal_token string
+	godotenv.Load()
 	personal_token = os.Getenv("GITHUB_TOKEN")
 	owner := "xingyizhou"
 	repo := "CenterNet"
@@ -143,6 +146,7 @@ func Test_license_score1(t *testing.T) {
 func Test_license_score2(t *testing.T) {
 	fmt.Println("TEST 15")
 	var personal_token string
+	godotenv.Load()
 	personal_token = os.Getenv("GITHUB_TOKEN")
 	owner := "hwholiday"
 	repo := "short_url"

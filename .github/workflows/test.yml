@@ -25,5 +25,7 @@ jobs:
         run: ./run sample_url_file.txt
 
       - name: Test installation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: ./run test
           

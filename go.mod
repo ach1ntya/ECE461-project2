@@ -3,8 +3,8 @@ module GOfiles
 go 1.18
 
 require (
-	github.com/go-git/go-git/v5 v5.5.2
 	github.com/google/go-github/v50 v50.0.0
+	github.com/joho/godotenv v1.5.1
 	github.com/shurcooL/githubv4 v0.0.0-20221229060216-a8d4a561cc93
 	go.uber.org/zap v1.24.0
 	golang.org/x/oauth2 v0.5.0
@@ -18,6 +18,7 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
+	github.com/go-git/go-git/v5 v5.5.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect

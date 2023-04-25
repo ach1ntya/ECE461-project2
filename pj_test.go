@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"github.com/joho/godotenv"
 )
 
 func Test_Dependency_score(t *testing.T) {
@@ -207,6 +208,7 @@ func Test_code_review_metric_2(t *testing.T) {
 
 func Test_code_review_metric_3(t *testing.T) {
 	fmt.Println("TEST 24")
+	godotenv.Load()
 	var personal_token string
 	personal_token = os.Getenv("GITHUB_TOKEN")
 	owner := "cloudinary"

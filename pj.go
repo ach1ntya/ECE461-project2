@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -104,6 +104,7 @@ func analyze_git(old_url string, url string) score_struct {
 	sugar_logger.Info("Completed getting ramp-up score!")
 
 	var personal_token string
+	godotenv.Load()
 	personal_token = os.Getenv("GITHUB_TOKEN")
 
 	sugar_logger.Info("Getting correctness score...")
